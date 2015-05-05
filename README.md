@@ -1,13 +1,14 @@
 # Custom Policy Cookie and External Service Example
 
-[JWT custom policy example using cookies]
+JWT custom policy example using cookies
 
 # Mule version
 Examples:
 Mule 3.6.1
 
 # Use Case
-This is an example of a custom policy where the JWT token validation would be an external http service.
+This is an example of a custom policy where the JWT token validation would be an external http service:
+
 1. Client initiates the call.
 2. When it hits Anypoint Gateway the policy will invoke.
 3. The custom policy will retrieve the JWT token from the cookie and send that to an external validation service.
@@ -29,4 +30,5 @@ src/main/resources/proxy/app/config/proxy.xml
 
 # Run
 If the details in the proxy application is used then the main service can be invoked by running this command:
+
 curl -v --cookie "jwt=eyJhb" http://0.0.0.0:8080/test
