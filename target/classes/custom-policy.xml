@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+	
+	<http:listener-config name="HTTP_Listener_8883"
+		host="0.0.0.0" port="8883" doc:name="HTTP Listener Configuration" />
+	
+	
+	<http:connector name="HTTP_HTTPS" enableCookies="true"
+		cookieSpec="netscape" validateConnections="true" sendBufferSize="0"
+		receiveBufferSize="0" receiveBacklog="0" clientSoTimeout="10000"
+		serverSoTimeout="10000" socketSoLinger="0" doc:name="HTTP-HTTPS" />
+
+
+	<!-- curl -v cookie "jwt=eyJhb" http://0.0.0.0:8080/test -->
+
+	
+	<flow name="validate.jwt.token">
+		
+		<http:inbound-endpoint connector-ref="HTTP_HTTPS"
+			address="http://0.0.0.0:8881/auth/jwt/verify" doc:name="HTTP" />
+		<logger message="Auth Get call #[payload]" level="INFO"
+			doc:name="Logger" />
+		<set-property value="#[['addedCookie':'TheNewCookie']]"
+			propertyName="cookies" doc:name="Property" />
+
+		<set-payload value="#[['statusCode':200]]" doc:name="Set Payload" />
+		<json:object-to-json-transformer
+			doc:name="Object to JSON" />
+		<http:response-builder status="200" contentType="application/json"
+			doc:name="HTTP Response Builder">
+			<http:set-cookie name="addedCookie" value="TheNewCookie" />
+		</http:response-builder>
+	</flow>
+	<flow name="mock.backend.service">
+		<http:listener config-ref="HTTP_Listener_8883"
+			path="/backend" doc:name="HTTP" />
+		<logger message="Call Backend Service #[payload]" level="INFO"
+			doc:name="Logger" />
+		<set-payload value="#[['status':'ok', 'message':'Backend service called!']]"
+			doc:name="Set Payload" />
+		<json:object-to-json-transformer
+			doc:name="Object to JSON" />
+
+	</flow>
+	
+	
+</mule>

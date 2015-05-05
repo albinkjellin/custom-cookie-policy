@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policy xmlns="http://www.mulesoft.org/schema/mule/policy"
+	xmlns:mule="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:api-platform-gw="http://www.mulesoft.org/schema/mule/api-platform-gw"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/policy http://www.mulesoft.org/schema/mule/policy/current/mule-policy.xsd
+              http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+              http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+              http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+              http://www.mulesoft.org/schema/mule/api-platform-gw http://www.mulesoft.org/schema/mule/api-platform-gw/current/mule-api-platform-gw.xsd">
+
+	<!-- curl -v cookie "jwt=eyJhb" http://0.0.0.0:8080/test -->
+
+
+	<before>
+		<!-- Retrieve JWT Token and store as a variable. -->
+		<mule:set-variable
+			value="#[org.mule.transport.http.CookieHelper.getCookieValueFromCookies(message.inboundProperties.cookies, 'jwt')]"
+			variableName="jwtToken" />
+		<!-- Check if token is there? -->
+		<mule:message-filter throwOnUnaccepted="true">
+			<mule:expression-filter name="tokenThere"
+				expression="#[flowVars.containsKey('jwtToken') &amp;&amp; jwtToken != null]" />
+		</mule:message-filter>
+
+		<mule:logger message="JWT Token is there: #[jwtToken]"
+			level="INFO" />
+
+		<!-- Check if JWT Token is valid using existing service. -->
+		<!-- Also retrieve the cookie from auth service. -->
+		<mule:enricher source="#[['status':payload.statusCode, 'cookie': org.mule.transport.http.CookieHelper.getCookieValueFromCookies(message.inboundProperties['Set-Cookie'], 'addedCookie')]]" target="#[flowVars['resultMap']]" >
+			<mule:processor-chain>
+				<!-- You will have to update the path there to whatever is needed. -->
+				<http:outbound-endpoint exchange-pattern="request-response"
+					responseTimeout="100000" method="GET"
+					address="http://{{host}}:{{port}}/auth/jwt/verify?token=#[jwtToken]" />
+				<json:json-to-object-transformer
+					returnClass="java.util.Map" />
+					
+			</mule:processor-chain>
+		</mule:enricher>
+		<mule:logger message="ResultMap #[resultMap]" level="INFO" />
+		<!-- Check if Token is valid -->
+		<mule:message-filter throwOnUnaccepted="true">
+			<mule:expression-filter expression="#[resultMap.status == 200]" />
+		</mule:message-filter>
+	</before>
+	
+	<after>
+		<!-- Populate new cookie based on value from auth service. -->
+		<http:response-builder status="200" contentType="application/json">
+			<http:set-cookie name="addedCookie" value="#[resultMap.cookie]" />
+		</http:response-builder>
+	</after>
+
+	<pointcut>
+		<api-platform-gw:api-pointcut apiName="{{ apiName }}"
+			apiVersion="{{ apiVersionName }}" />
+	</pointcut>
+</policy>

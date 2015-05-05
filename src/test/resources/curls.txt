@@ -1,0 +1,5 @@
+#Working example invoke base service:
+curl -v --cookie "jwt=eyJhb" http://0.0.0.0:8080/test
+
+#Test verify Service
+curl -v http://0.0.0.0:8881/auth/jwt/verify

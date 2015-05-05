@@ -1,0 +1,27 @@
+---
+id: jwt
+name: JWT Validation Policy
+description: Validates a JWT token with an internal service.
+category: Security
+type: system
+standalone: true
+requiresConnectivity: false
+providedCharacteristics: []
+requiredCharacteristics: []
+configuration:
+  - propertyName: host
+    name: Host
+    description: |
+      Host of the jwt service
+    type: string
+    defaultValue:
+    optional: false
+    sensitive: false
+    allowMultiple: false
+  - propertyName: port
+    name: Port
+    description: Port of the JWT Service
+    type: string
+    optional: false
+    sensitive: false
+    allowMultiple: true
